@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.ubcn.tmsbatch.mapper.tms.TmsMapper">
+
+	<update id="mergeIssuerList" parameterType="kr.co.ubcn.tmsbatch.model.Issuer">
+		<foreach collection="list" item="item" separator=";">
+			with upsert as (update tms.tb_issuer
+				SET name = #{item.name},
+			        created_at = to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+			        modified_at = to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss')
+			    WHERE code = #{item.code}
+			    returning *
+			)
+		    INSERT INTO tms.tb_issuer
+				(code, name, 
+					description, created_at, 
+					modified_at, status)
+			select #{item.code}, #{item.name}, 
+				null, to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'), 
+				to_timestamp(#{item.modified_at, jdbcType=TIMESTAMP}, 'yyyymmddhh24miss'), 
+				1
+			where not exists(select * from upsert)
+		</foreach>
+	</update>
+	
+	<update id="mergeOwnerList" parameterType="kr.co.ubcn.tmsbatch.model.Owner">
+		<foreach collection="list" item="item" separator=";">
+			with upsert as (UPDATE tms.tb_owner
+	            SET company_name = #{item.company_name},
+	                corporation_yn = #{item.corporation_yn},
+	                corporation_no = #{item.corporation_no},
+	                representative_name = #{item.representative_name},
+	                business_address = #{item.business_address},
+	                established_date = to_date(#{item.established_date}, 'yyyymmdd'),
+	                business_type = #{item.business_type},
+	                business_item = #{item.business_item},
+	                description = #{item.description},
+	                created_at = to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+	                modified_at = to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'),
+	                status = cast(#{item.status} as Integer)
+	            WHERE business_no = #{item.business_no}
+			    returning *
+			)
+		    INSERT INTO tms.tb_owner
+				(business_no, company_name, 
+					corporation_yn, corporation_no, 
+					representative_name, business_address, 
+					established_date, business_type, 
+					business_item, description, 
+					created_at, modified_at, 
+					status)
+			select #{item.business_no}, #{item.company_name}, 
+				#{item.corporation_yn}, #{item.corporation_no}, 
+				#{item.representative_name}, #{item.business_address}, 
+				to_date(#{item.established_date}, 'yyyymmdd'), #{item.business_type}, 
+				#{item.business_item}, #{item.description}, 
+				to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'), to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'), 
+				cast(#{item.status} as Integer)
+			where not exists(select * from upsert)
+		</foreach>
+	</update>
+	
+	<update id="mergeDivisionList" parameterType="kr.co.ubcn.tmsbatch.model.Division">
+		<foreach collection="list" item="item" separator=";">
+			with upsert as (UPDATE tms.tb_division
+	            SET name = #{item.name},
+	                phone_no = #{item.phone_no},
+	                mobile_no = #{item.mobile_no},
+	                email = #{item.email},
+	                ddc_yn = #{item.ddc_yn},
+	                cutoff_type = #{item.cutoff_type},
+	                cutoff_period = #{item.cutoff_period},
+	                billing_hold = #{item.billing_hold},
+	                cutoff_hold = #{item.cutoff_hold},
+	                description = #{item.description},
+	                created_at = to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+	                modified_at = to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'),
+	                status = cast(#{item.status} as Integer)
+	            WHERE business_no = #{item.business_no}
+	                AND no = #{item.no}
+			    returning *
+			)
+		    INSERT INTO tms.tb_division
+				(business_no, no, name, phone_no, mobile_no, email, ddc_yn, cutoff_type, cutoff_period, cutoff_hold, billing_hold, description, created_at, modified_at, status)
+			select #{item.business_no}, #{item.no}, 
+				#{item.name}, #{item.phone_no}, 
+				#{item.mobile_no}, #{item.email}, 
+				#{item.ddc_yn}, #{item.cutoff_type}, 
+				#{item.cutoff_period}, #{item.cutoff_hold}, 
+				#{item.billing_hold}, #{item.description}, 
+				to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'), to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'), 
+				cast(#{item.status} as Integer)
+			where not exists(select * from upsert)
+		</foreach>
+	</update>
+	
+	<update id="mergeMerchantList" parameterType="kr.co.ubcn.tmsbatch.model.Merchant">
+		<foreach collection="list" item="item" separator=";">
+			with upsert as (UPDATE tms.tb_merchant
+                SET account_no = #{item.account_no},
+                    eddc_yn = #{item.eddc_yn},
+                    open_date = to_date(#{item.open_date}, 'yyyymmdd'),
+                    close_date = to_date(#{item.close_date}, 'yyyymmdd'),
+                    fee_rate = cast(#{item.fee_rate} as double PRECISION),
+                    commission_rate = cast(#{item.commission_rate} as double PRECISION),
+                    created_at = to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+                    modified_at = to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'),
+                    status = cast(#{item.status} as Integer)
+                WHERE business_no = #{item.business_no}
+                    AND division_no = #{item.division_no}
+                    AND issuer_code = #{item.issuer_code}
+			    returning *
+			)
+		    INSERT INTO tms.tb_merchant 
+				(business_no, division_no, issuer_code, account_no, eddc_yn, open_date, close_date, fee_rate, commission_rate, created_at, modified_at, status)
+			select #{item.business_no}, #{item.division_no}, 
+				#{item.issuer_code}, #{item.account_no}, 
+				#{item.eddc_yn}, to_date(#{item.open_date}, 'yyyymmdd'), 
+				to_date(#{item.close_date}, 'yyyymmdd'), cast(#{item.fee_rate} as double PRECISION), 
+				cast(#{item.commission_rate} as double PRECISION), to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'), 
+				to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'), cast(#{item.status} as Integer) 
+			where not exists(select * from upsert)
+		</foreach>
+	</update>
+	
+	<update id="mergeOperatorList" parameterType="kr.co.ubcn.tmsbatch.model.Operator">
+		<foreach collection="list" item="item" separator=";">
+			with upsert as (UPDATE tms.tb_operator
+                SET name = #{item.name},
+                    description = #{item.description},
+                    created_at = to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+                    modified_at = to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss')
+                WHERE no = cast(#{item.no} as Integer)
+			    returning *
+			)
+		    INSERT INTO tms.tb_operator 
+				(no, name, description, created_at, modified_at) 
+			select cast(#{item.no} as Integer), #{item.name},
+				#{item.description}, to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'), 
+				to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss')
+			where not exists(select * from upsert)
+		</foreach>
+	</update>
+	
+	<update id="mergeGroupList" parameterType="kr.co.ubcn.tmsbatch.model.Group">
+		<foreach collection="list" item="item" separator=";">
+			with upsert as (UPDATE tms.tb_group
+                SET parent_no = cast(#{item.parent_no} as Integer),
+                    type = #{item.type},
+                    level = cast(#{item.level} as Integer),
+                    operator_no = cast(#{item.operator_no} as Integer),
+                    name = #{item.name},
+                    path = #{item.path},
+                    created_at = to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+                    modified_at = to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'),
+                    status = cast(#{item.status} as Integer)
+                WHERE no = cast(#{item.no} as Integer)
+			    returning *
+			)
+		    INSERT INTO tms.tb_group
+				(no, type, level, operator_no, name, path, created_at, modified_at, status)
+			select cast(#{item.no} as Integer), #{item.type},
+				cast(#{item.level} as Integer), cast(#{item.operator_no} as Integer),
+				#{item.name}, #{item.path}, 
+				to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'), to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'), 
+				cast(#{item.status} as Integer)
+			where not exists(select * from upsert)
+		</foreach>
+	</update>
+	<update id="mergeTerminalList" parameterType="kr.co.ubcn.tmsbatch.model.Terminal">
+		<foreach collection="list" item="item" separator=";">
+			with upsert as (UPDATE tms.tb_terminal
+                SET business_no = #{item.business_no},
+                    division_no = #{item.division_no},
+                    operator_no = cast(#{item.operator_no} as Integer),
+                    group_no = cast(#{item.group_no} as Integer),
+                    vm_code = #{item.vm_code},
+                    vm_model_no = #{item.vm_model_no},
+                    place_name = #{item.place_name},
+                    place_code = #{item.place_code},
+                    place_no = #{item.place_no},
+                    modem_no = #{item.modem_no},
+                    ddc_merchant_no = #{item.ddc_merchant_no},
+                    tmoney_terminal_no = #{item.tmoney_terminal_no},
+                    install_date = to_date(#{item.install_date}, 'yyyymmdd'),
+                    open_date = to_date(#{item.open_date}, 'yyyymmdd'),
+                    close_date = to_date(#{item.close_date}, 'yyyymmdd'),
+                    transaction_no = #{item.transaction_no},
+                    created_at = to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+                    modified_by = #{item.modified_by},
+                    modified_at = to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'),
+                    status = cast(#{item.status} as Integer)
+                WHERE id = #{item.id} 
+			    returning *
+			)
+		    INSERT INTO tms.tb_terminal 
+				(id, business_no, division_no, operator_no, group_no, vm_code, vm_model_no, place_name, place_code, place_no, modem_no, ddc_merchant_no, tmoney_terminal_no, install_date, open_date, close_date, transaction_no, created_at, modified_by, modified_at, status)
+			select #{item.id}, #{item.business_no},
+				#{item.division_no}, cast(#{item.operator_no} as Integer),
+				cast(#{item.group_no} as Integer), #{item.vm_code}, 
+				#{item.vm_model_no}, #{item.place_name}, 
+				#{item.place_code}, #{item.place_no},
+				#{item.modem_no}, #{item.ddc_merchant_no}, 
+				#{item.tmoney_terminal_no}, to_date(#{item.install_date}, 'yyyymmdd'),
+				to_date(#{item.open_date}, 'yyyymmdd'), to_date(#{item.close_date}, 'yyyymmdd'),
+				#{item.transaction_no}, to_timestamp(#{item.created_at}, 'yyyymmddhh24miss'),
+				#{item.modified_by}, to_timestamp(#{item.modified_at}, 'yyyymmddhh24miss'),
+				cast(#{item.status} as Integer)
+			where not exists(select * from upsert)
+		</foreach>
+	</update>
+</mapper>

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.ubcn.tmsbatch.mapper.vanbt.VanbtMapper">
+
+    <select id="selectIssuerList" resultType="kr.co.ubcn.tmsbatch.model.Issuer">
+	  SELECT
+          A.orgcode AS code,
+          A.orgname AS name,
+          date_format(A.registdate, '%Y%m%d%H%i%s') AS created_at,
+          date_format(A.procdate, '%Y%m%d%H%i%s') AS modified_at
+      FROM vanon.tblorgmst A
+      WHERE A.financialflag = 'N'
+          AND A.contractflag = 'Y'
+          AND A.orgcode IN (
+                  SELECT DISTINCT issuerno
+                      FROM tblmchtmst
+                      WHERE merchantno <![CDATA[<>]]> '000000000000000'
+                      )
+	</select>
+	
+	<select id="selectOwnerList" resultType="kr.co.ubcn.tmsbatch.model.Owner">
+	  SELECT
+          A.businessno AS business_no,
+          A.merchantname AS company_name,
+          case businessflag when '1' then 'N' else 'Y' end AS corporation_yn,
+          A.juridicalno AS corporation_no,
+          A.presentname AS representative_name,
+          concat(A.address, ' ', addressdetail) AS business_address,
+          date_format(A.opendate, '%Y%m%d') AS established_date,
+          B.codeidname AS business_type,
+          B.codedetailname AS business_item,
+          A.memo AS description,
+          date_format(A.registdate, '%Y%m%d%H%i%s') AS created_at,
+          date_format(A.procdate, '%Y%m%d%H%i%s') AS modified_at,
+          cast(A.stateflag as integer) AS status
+      FROM tblbizmst A
+          LEFT JOIN tblbizcode B
+              ON SUBSTRing(A.categorycode, 1, 2) = B.codeid
+                  AND SUBSTRing(A.categorycode, 3, 2) = B.codedetail
+      WHERE biztype = '00'
+	</select>
+	
+	<select id="selectDivisionList" resultType="kr.co.ubcn.tmsbatch.model.Division">
+		SELECT
+            A.businessno AS business_no,
+            A.biztype AS no,
+            A.merchantname AS name,
+            case substring(A.tel, 1, 2) 
+                    when '01' then ''
+                    when '00' then ''
+                    else REGEXP_REPLACE(
+                            REGEXP_REPLACE(
+                                    REPLACE(REPLACE(REPLACE(A.tel, '-', ''), ')', ''), ' ', ''),
+                                    '^(02|0[^2][1-9]|070|050\d)(\d{3,4})(\d{4})(~\d)*$',
+                                    '\1-\2-\3\4'
+                                ),
+                            '^(\d{3,4})(\d{4})$',
+                             '\1-\2'
+                        )
+                 end AS phone_no,
+            case SUBSTRing(A.hp, 1, 2) 
+                    when '01' then REGEXP_REPLACE(
+                                REPLACE(REPLACE(A.hp, '-', ''), ' ', ''),
+                                '^(02|0[^2]\d)(\d{3,4})(\d{4})(~\d)*$',
+                                '\1-\2-\3\4'
+                            )
+                    else ''
+                end AS mobile_no,
+            A.email AS email,
+            ifnull(A.ddcflag, 'N') AS ddc_yn,
+            B.codename AS cutoff_type,
+            case A.adjust_type when '1' then concat(C.codename,  case D.codename when null then '' else concat('(', D.codename, ')') end ) 
+            	else null end AS cutoff_period,
+            E.codename AS billing_hold,
+            case A.adjust_date_flag when 'ADJUST' then null else F.codename end AS cutoff_hold,
+            A.memo AS description,
+            date_format(A.registdate, '%Y%m%d%H%i%s') AS created_at,
+            date_format(A.procdate, '%Y%m%d%H%i%s') AS modified_at,
+            cast(A.stateflag as integer) AS status
+        FROM tblbizmst A
+            LEFT JOIN tblcode B
+                ON B.codeid = 'ADT' AND B.code = A.adjust_type
+            LEFT JOIN tblcode C
+                ON C.codeid = 'APT' AND C.code = A.adjust_period_type
+            LEFT JOIN tblcode D
+                ON D.codeid = case A.adjust_period_type when 'WK1' then 'WDY' when 'MM1' then 'MDY' end
+                    AND D.code = A.adjust_period_info
+            LEFT JOIN tblcode E
+                ON E.codeid = 'ADF' AND E.code = A.adjust_date_flag
+            LEFT JOIN tblcode F
+                ON F.codeid = 'ADJ' AND F.code = A.adjust_suspend
+	</select>
+	
+	<select id="selectMerchantList" resultType="kr.co.ubcn.tmsbatch.model.Merchant">
+		SELECT
+                A.businessno AS business_no,
+                A.biztype AS division_no,
+                A.issuerno AS issuer_code,
+                A.rfmerchantno AS account_no,
+                case A.eddcflag when 'D' then 'N' else 'Y' end AS eddc_yn,
+                date_format(A.svcstartdate, '%Y%m%d') AS open_date,
+                date_format(A.svcclosedate, '%Y%m%d') AS close_date,
+                A.feerate AS fee_rate,
+                A.vanfeerate AS commission_rate,
+                date_format(A.registdate, '%Y%m%d%H%i%s') AS created_at,
+                date_format(A.procdate, '%Y%m%d%H%i%s') AS modified_at,
+                cast(A.stateflag as integer) AS status
+            FROM tblmchtmst A
+                INNER JOIN tblbizmst B
+                    ON B.businessno = A.businessno
+                        AND B.biztype = A.biztype
+            WHERE A.merchantno <![CDATA[<>]]> '000000000000000'
+                AND A.rfmerchantno IS NOT NULL
+                AND A.issuerno IN ('TMN', 'NPC', 'CSB', 'MYB', 'KKP', 'KRP')
+                AND A.stateflag = '1'
+	</select>
+	
+	<select id="selectOperatorList" resultType="kr.co.ubcn.tmsbatch.model.Operator">
+		SELECT
+            A.seq AS no,
+            A.name AS name,
+            A.memo AS description,
+            date_format(A.create_date, '%Y%m%d%H%i%s') AS created_at,
+            date_format(A.modify_date, '%Y%m%d%H%i%s') AS modified_at
+        FROM vmms.tb_company A
+	</select>
+	
+	<select id="selectGroupList" resultType="kr.co.ubcn.tmsbatch.model.Group">
+		SELECT
+            A.seq AS no,
+            case A.parent_seq when 0 then null when A.seq then null else A.parent_seq end AS parent_no,
+            case A.sort when 0 then 'L' else 'N' end AS type,
+            A.node_level AS level,
+            A.company_seq AS operator_no,
+            A.name AS name,
+            A.node_path AS path,
+            A.memo AS description,
+            date_format(A.create_date, '%Y%m%d%H%i%s') AS created_at,
+            date_format(A.modify_date, '%Y%m%d%H%i%s') AS modified_at,
+            case A.is_enabled when 'N' then 0 else 1 end AS status
+        FROM (
+                SELECT A.*, A.depth as node_level, vmms.F_GET_ORGANIZATION_NAMEPATH3(seq) AS node_path
+                FROM vmms.tb_organization A
+        ) A
+	</select>
+	
+	<select id="selectTerminalList" resultType="kr.co.ubcn.tmsbatch.model.Terminal">
+		SELECT
+            A.terminalid AS id,
+            A.businessno AS business_no,
+            A.biztype AS division_no,
+            ifnull(B.company_seq, 0) AS operator_no,
+            ifnull(B.organization_seq, 0) AS group_no,
+            B.code AS vm_code,
+            B.model AS vm_model_no,
+            B.place AS place_name,
+            B.place_code AS place_code,
+            B.place_no AS place_no,
+            B.modem AS modem_no,
+            A.pg_merch_nbr AS ddc_merchant_no,
+            A.orgterminalid1 AS tmoney_terminal_no,
+            date_format(TRIM(A.createdate), '%Y%m%d') AS install_date,
+            date_format(TRIM(A.svcstartdate), '%Y%m%d') AS open_date,
+            date_format(TRIM(A.svcclosedate), '%Y%m%d') AS close_date,
+            TRIM(B.transaction_no) AS transaction_no,
+            date_format(A.registdate, '%Y%m%d%H%i%s') AS created_at,
+            case U2.id when null then null else concat(U2.id, '(', U2.name, ')') end AS modified_by,
+            CASE
+                WHEN LENGTH(A.procdate) = 14 THEN date_format(A.procdate, '%Y%m%d%H%i%s')
+                ELSE A.updtdt
+            END AS modified_at,
+            CASE
+                WHEN tempstop = 'Y' THEN 2
+                WHEN useflag = 'N' THEN 0
+                ELSE cast(A.stateflag as integer)
+            END AS status
+        FROM tbltermmst A
+            LEFT JOIN vmms.tb_vending_machine B
+                ON A.terminalid = B.terminal_id
+            LEFT JOIN vmms.tb_user U2
+                ON U2.seq = B.modify_user_seq
+	</select>
+</mapper>
