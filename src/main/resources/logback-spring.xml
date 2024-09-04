@@ -17,7 +17,7 @@
             <Pattern>[%d{HH:mm:ss}] [%-5level] [%M\(%L\)] - %msg%n</Pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_FILE_PATH}/${project.name}${project.division}-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_FILE_PATH}/${project.name}-%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>31</maxHistory>
         </rollingPolicy>
     </appender>
