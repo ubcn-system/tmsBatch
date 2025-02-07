@@ -8,7 +8,7 @@ public class Issuer {
 	public String name;
 	public String created_at;
 	public String modified_at;
- 
+
 }
 
  
